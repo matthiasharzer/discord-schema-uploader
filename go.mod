@@ -1,4 +1,4 @@
-module github.com/username/template
+module github.com/matthiasharzer/discord-schema-uploader
 
 go 1.27.3
 
