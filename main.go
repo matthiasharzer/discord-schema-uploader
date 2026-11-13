@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/matthiasharzer/discord-schema-uploader/cmd/run"
 	"github.com/matthiasharzer/discord-schema-uploader/cmd/version"
 
 	_ "github.com/matthiasharzer/service-kit/logging"
@@ -19,6 +20,7 @@ var rootCommand = &cobra.Command{
 
 func init() {
 	rootCommand.AddCommand(version.Command)
+	rootCommand.AddCommand(run.Command)
 }
 
 func main() {
