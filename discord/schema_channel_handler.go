@@ -9,10 +9,12 @@ import (
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/matthiasharzer/discord-schema-uploader/discord/command"
 	"github.com/matthiasharzer/service-kit/logging"
 )
 
 const maxFileSize = 10 * 1024 * 1024 // 10 MB limit
+const commandPrefix = "!"
 
 func downloadFile(url, dest string) error {
 	resp, err := http.Get(url)
@@ -31,10 +33,22 @@ func downloadFile(url, dest string) error {
 	return err
 }
 
+func parseCommand(message string) (string, []string) {
+	parts := strings.Fields(message)
+	if len(parts) == 0 {
+		return "", nil
+	}
+	if strings.HasPrefix(parts[0], commandPrefix) {
+		parts[0] = strings.TrimPrefix(parts[0], commandPrefix)
+	}
+	return parts[0], parts[1:]
+}
+
 type schemaChannelHandler struct {
 	dg        *discordgo.Session
 	channelID string
 	schemaDir string
+	commands  map[string]command.Command
 }
 
 func newSchemaChannelHandler(dg *discordgo.Session, channelID, schemaDir string) *schemaChannelHandler {
@@ -42,16 +56,11 @@ func newSchemaChannelHandler(dg *discordgo.Session, channelID, schemaDir string)
 		dg:        dg,
 		channelID: channelID,
 		schemaDir: schemaDir,
+		commands:  buildCommands(schemaDir),
 	}
 }
 
-func (h *schemaChannelHandler) handleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.Bot || m.ChannelID != h.channelID || len(m.Attachments) == 0 {
-		return
-	}
-
-	logging.Info("discord message received", "content", m.Content, "channel", m.ChannelID, "num_attachments", len(m.Attachments))
-
+func (h *schemaChannelHandler) handleAttachmentMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 	for _, att := range m.Attachments {
 		ext := strings.ToLower(filepath.Ext(att.Filename))
 		if ext != ".schem" && ext != ".schematic" {
@@ -86,6 +95,42 @@ func (h *schemaChannelHandler) handleMessage(s *discordgo.Session, m *discordgo.
 		_, err := s.ChannelMessageSendReply(m.ChannelID, msg, m.Reference())
 		if err != nil {
 			logging.Warn("error sending save command message", "channel", m.ChannelID, "message", m.ID, "error", err)
+		}
+	}
+}
+
+func (h *schemaChannelHandler) handleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
+	if m.Author.Bot || m.ChannelID != h.channelID {
+		return
+	}
+
+	logging.Info("discord message received", "content", m.Content, "channel", m.ChannelID, "num_attachments", len(m.Attachments))
+
+	if len(m.Attachments) > 0 {
+		h.handleAttachmentMessage(s, m)
+		return
+	}
+
+	if !strings.HasPrefix(m.Content, commandPrefix) {
+		return
+	}
+
+	cmd, args := parseCommand(m.Content)
+	commandFunc, exists := h.commands[cmd]
+	if !exists {
+		_, err := s.ChannelMessageSendReply(m.ChannelID, "❌ Unknown command.", m.Reference())
+		if err != nil {
+			logging.Warn("error sending unknown command message", "channel", m.ChannelID, "message", m.ID, "error", err)
+		}
+		return
+	}
+
+	err := commandFunc(args, s, m.Message)
+	if err != nil {
+		logging.Error("error executing command", "command", cmd, "error", err)
+		_, sendErr := s.ChannelMessageSendReply(m.ChannelID, fmt.Sprintf("❌ Error executing command: %v", err), m.Reference())
+		if sendErr != nil {
+			logging.Warn("error sending command execution error message", "channel", m.ChannelID, "message", m.ID, "error", sendErr)
 		}
 	}
 }
