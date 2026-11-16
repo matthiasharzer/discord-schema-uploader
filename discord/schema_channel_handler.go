@@ -82,8 +82,7 @@ func (h *schemaChannelHandler) handleMessage(s *discordgo.Session, m *discordgo.
 			continue
 		}
 
-		cmdName := strings.TrimSuffix(safeName, ext)
-		msg := fmt.Sprintf("✅ Saved **`%s`**! Load it in-game with:\n```//schem load %s```", safeName, cmdName)
+		msg := fmt.Sprintf("✅ Saved **`%s`**! Load it in-game with:\n```//schem load %s```", safeName, safeName)
 		_, err := s.ChannelMessageSendReply(m.ChannelID, msg, m.Reference())
 		if err != nil {
 			logging.Warn("error sending save command message", "channel", m.ChannelID, "message", m.ID, "error", err)
