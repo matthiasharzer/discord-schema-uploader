@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/username/template/cmd/version"
+	"github.com/matthiasharzer/discord-schema-uploader/cmd/run"
+	"github.com/matthiasharzer/discord-schema-uploader/cmd/version"
 
 	_ "github.com/matthiasharzer/service-kit/logging"
 	"github.com/spf13/cobra"
 )
 
 var rootCommand = &cobra.Command{
-	Use: "<tool-name>",
+	Use: "discord-schema-uploader",
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		return cmd.Help()
 	},
@@ -19,6 +20,7 @@ var rootCommand = &cobra.Command{
 
 func init() {
 	rootCommand.AddCommand(version.Command)
+	rootCommand.AddCommand(run.Command)
 }
 
 func main() {
