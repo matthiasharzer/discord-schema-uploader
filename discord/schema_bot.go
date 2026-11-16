@@ -59,9 +59,9 @@ func (b *SchemaBot) handleMessage(s *discordgo.Session, m *discordgo.MessageCrea
 	for _, att := range m.Attachments {
 		ext := strings.ToLower(filepath.Ext(att.Filename))
 		if ext != ".schem" && ext != ".schematic" {
-			err := s.MessageReactionAdd(m.ChannelID, m.ID, "❌")
+			_, err := s.ChannelMessageSendReply(m.ChannelID, "❌ Not a schematic file.", m.Reference())
 			if err != nil {
-				logging.Warn("error adding reaction to message", "channel", m.ChannelID, "message", m.ID, "error", err)
+				logging.Warn("error sending file type error message", "channel", m.ChannelID, "message", m.ID, "error", err)
 			}
 			continue
 		}
