@@ -3,6 +3,7 @@ package command
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -14,16 +15,17 @@ func ListCommand(schemaDir string) Command {
 			return fmt.Errorf("failed to read directory: %w", err)
 		}
 
-		message := "## Available Schematics\n"
+		var message strings.Builder
+		message.WriteString("## Available Schematics\n")
 
 		for _, entry := range entries {
 			if entry.IsDir() {
 				continue
 			}
-			message += fmt.Sprintf("- `%s`\n", entry.Name())
+			message.WriteString(fmt.Sprintf("- `%s`\n", entry.Name()))
 		}
 
-		_, err = s.ChannelMessageSendReply(m.ChannelID, message, m.Reference())
+		_, err = s.ChannelMessageSendReply(m.ChannelID, message.String(), m.Reference())
 		if err != nil {
 			return fmt.Errorf("failed to send message reply: %w", err)
 		}
